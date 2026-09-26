@@ -13,8 +13,28 @@ Run the installer:
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
+```bash
+source ~/.bashrc
+```
 Verify the installation:
 
 ```bash
 conda --version
 ```
+
+```bash
+conda create -n assignment1 -c conda-forge -c bioconda fastqc trimmomatic multiqc -y
+```
+
+```bash
+conda activate assignment1
+```
+```bash
+fastqc --version
+trimmomatic -version
+multiqc --version
+```
+
+
+<img width="800" height="188" alt="image" src="https://github.com/user-attachments/assets/f11bc973-8b97-4443-ad68-e6fcfa74e76c" />
+
