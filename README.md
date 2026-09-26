@@ -794,6 +794,10 @@ This confirms that Perl can parse the script without syntax errors. It does not,
 
 ## 5. SPINGO Classification
 
+
+<img width="758" height="467" alt="image" src="https://github.com/user-attachments/assets/6c7af6f7-cfdc-40a9-b47d-e5afca9e46fa" />
+
+
 After validating the modified script, proceed with taxonomic classification using the paired-end sequencing reads.
 
 The classification is performed using the SPINGO executable and the RDP 11.2 species reference database. The script accepts the input file list through its first command-line argument, as indicated by:
