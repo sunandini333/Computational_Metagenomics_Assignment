@@ -812,40 +812,119 @@ Each input entry is processed by the script, and its SPINGO output is written to
 
 ---
 
-## 6. Relative Abundance Calculation and TSS Normalization
 
-After obtaining the taxonomic classification results, calculate the abundance of each species in each sample.
+## 6. Calculate Species Relative Abundance Using TSS Normalization
 
-Total-sum scaling (TSS) normalization converts the raw species counts into relative abundances by dividing each species count by the total number of classified reads in that sample.
+After completing the SPINGO classification, the next step is to calculate the relative abundance of each identified species across all samples.
 
-The relative abundance of species \(i\) in sample \(j\) is:
+Total-sum scaling (TSS) normalization converts raw species counts into relative abundances by dividing each species count by the total number of classified reads in the corresponding sample.
+
+### Step 6.1: Prepare the Species Abundance Table
+
+Combine the species-level counts from all 12 SPINGO output files into a single abundance matrix.
+
+The matrix should have:
+- Rows representing individual species.
+- Columns representing the 12 samples.
+- Values representing the number of reads assigned to each species.
+
+Save the combined abundance matrix as `species_counts.tsv`.
+
+Example format:
+
+| Species | SRR14919235 | SRR14919236 | SRR14919237 |
+|---|---:|---:|---:|
+| Coprococcus_comes | 125 | 108 | 142 |
+| Blautia_wexlerae | 85 | 110 | 97 |
+| Ruminococcus_gnavus | 63 | 72 | 59 |
+
+The values above are illustrative examples only. Use the actual counts obtained from SPINGO.
+
+### Step 6.2: Perform TSS Normalization
+
+For each sample, divide the count of each species by the sum of all species counts in that sample.
+
+The formula for relative abundance is:
 
 \[
 RA_{ij} = \frac{C_{ij}}{\sum_{i=1}^{S} C_{ij}}
 \]
 
 Where:
-
 - \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
 - \(C_{ij}\) is the raw count of species \(i\) in sample \(j\).
-- \(S\) is the total number of species in the abundance table.
+- \(S\) is the total number of species.
 
-For relative abundance expressed as a percentage:
+The following R code performs TSS normalization:
 
-\[
-RA_{ij}(\%) =
-\frac{C_{ij}}{\sum_{i=1}^{S} C_{ij}} \times 100
-\]
+```r
+# Load the species count matrix
+species_counts <- read.table(
+    "species_counts.tsv",
+    header = TRUE,
+    sep = "\t",
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+)
 
-Each sample's relative abundance values should sum to 1, or 100% when expressed as percentages, provided the sample has a nonzero total classified count.
+# Set species names as row names
+rownames(species_counts) <- species_counts$Species
+species_counts$Species <- NULL
+
+# Convert abundance columns to numeric
+species_counts[] <- lapply(
+    species_counts,
+    as.numeric
+)
+
+# Calculate total counts per sample
+sample_totals <- colSums(
+    species_counts,
+    na.rm = TRUE
+)
+
+# Remove samples with zero total counts
+species_counts <- species_counts[
+    ,
+    sample_totals > 0,
+    drop = FALSE
+]
+
+sample_totals <- colSums(
+    species_counts,
+    na.rm = TRUE
+)
+
+# Apply TSS normalization
+species_relative_abundance <- sweep(
+    species_counts,
+    2,
+    sample_totals,
+    FUN = "/"
+)
+
+# Verify that each sample sums to approximately 1
+colSums(species_relative_abundance)
+
+# Save the normalized abundance matrix
+write.table(
+    species_relative_abundance,
+    "species_relative_abundance_TSS.tsv",
+    sep = "\t",
+    quote = FALSE,
+    col.names = NA
+)
+```
+
+The resulting normalized abundance values range from 0 to 1. The relative abundances in each sample should sum to approximately 1, excluding any samples with no classified reads.
 
 ---
 
-## 7. Identify the Top 20 Species
+## 7. Identify the Top 20 Species Based on Mean Abundance
 
-Calculate the mean relative abundance of each species across the samples after TSS normalization.
+After normalization, calculate the mean relative abundance of each species across all samples.
 
-The mean relative abundance of species \(i\) is:
+The mean relative abundance of species \(i\) is calculated as:
 
 \[
 \overline{RA_i} =
@@ -853,49 +932,172 @@ The mean relative abundance of species \(i\) is:
 \]
 
 Where:
-
 - \(\overline{RA_i}\) is the mean relative abundance of species \(i\).
 - \(N\) is the number of samples.
 - \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
 
-Sort the species in descending order of their mean relative abundance and select the first 20 species.
+### Step 7.1: Calculate Mean Relative Abundance
+
+```r
+# Calculate mean relative abundance of each species
+mean_abundance <- rowMeans(
+    species_relative_abundance,
+    na.rm = TRUE
+)
+
+# Create a data frame of species and their mean abundance
+mean_abundance_df <- data.frame(
+    Species = names(mean_abundance),
+    Mean_Relative_Abundance = as.numeric(mean_abundance)
+)
+
+# Sort species in descending order of mean abundance
+mean_abundance_df <- mean_abundance_df[
+    order(
+        mean_abundance_df$Mean_Relative_Abundance,
+        decreasing = TRUE
+    ),
+]
+
+# Select the top 20 species
+top20_species <- head(
+    mean_abundance_df,
+    20
+)
+
+# Display the top 20 species
+print(top20_species)
+
+# Save the results
+write.table(
+    top20_species,
+    "top20_species_mean_abundance.tsv",
+    sep = "\t",
+    row.names = FALSE,
+    quote = FALSE
+)
+```
+
+The resulting table contains the 20 species with the highest mean relative abundance, arranged in descending order.
 
 ---
 
-## 8. Visualization of the Top 20 Species
+## 8. Visualize the Top 20 Species Using Bar Graphs
 
-Generate bar graphs showing the relative abundances of the 20 most abundant species.
+Generate a sorted bar graph to represent the mean relative abundance of the top 20 species.
 
-The visualization should:
+### Step 8.1: Install and Load ggplot2
 
-- Display species names along the x-axis.
-- Display mean relative abundance on the y-axis.
-- Arrange the species in descending order of mean relative abundance.
-- Include a clear title and axis labels.
-- Use readable species labels, rotating them if necessary to avoid overlap.
+If `ggplot2` is not already installed, install it using:
 
-The resulting bar graph provides a visual summary of the species composition and the relative abundance of the top 20 species identified by SPINGO.
+```r
+install.packages("ggplot2")
+```
+
+Load the package:
+
+```r
+library(ggplot2)
+```
+
+### Step 8.2: Generate the Sorted Bar Graph
+
+```r
+# Set species order based on descending mean abundance
+top20_species$Species <- factor(
+    top20_species$Species,
+    levels = top20_species$Species
+)
+
+# Generate the bar graph
+p <- ggplot(
+    top20_species,
+    aes(
+        x = Species,
+        y = Mean_Relative_Abundance
+    )
+) +
+    geom_col(
+        fill = "steelblue",
+        width = 0.75
+    ) +
+    labs(
+        title = "Top 20 Species Based on Mean Relative Abundance",
+        x = "Species",
+        y = "Mean Relative Abundance"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+        plot.title = element_text(
+            face = "bold",
+            hjust = 0.5
+        ),
+        axis.text.x = element_text(
+            angle = 60,
+            hjust = 1,
+            size = 9
+        ),
+        panel.grid.major.x = element_blank()
+    )
+
+# Display the graph
+print(p)
+
+# Save the graph
+ggsave(
+    "top20_species_mean_abundance.png",
+    plot = p,
+    width = 12,
+    height = 7,
+    dpi = 300
+)
+```
+
+The x-axis represents the species, arranged in descending order of mean relative abundance. The y-axis represents their mean relative abundances across the samples.
 
 ---
 
-## 9. Expected Outputs
+## 9. Interpretation of Results
 
-The SPINGO analysis should produce the following outputs:
+The SPINGO classification results were used to determine the taxonomic composition of the sequencing samples at the genus and species levels.
 
-| Output | Description |
+Following taxonomic classification, the raw species counts were normalized using total-sum scaling. This allowed the abundance of each species to be expressed as a proportion of the total classified reads in each sample.
+
+The mean relative abundance of each species was then calculated across the samples. The 20 species with the highest mean relative abundance were selected and arranged in descending order for visualization.
+
+### Results to Report
+
+After running the analysis, include the following in your report:
+
+1. The number of reads classified at the genus and species levels.
+2. The combined species abundance table for all samples.
+3. The TSS-normalized species relative abundance matrix.
+4. The table of the top 20 species ranked by mean relative abundance.
+5. The sorted bar graph showing the mean relative abundance of the top 20 species.
+
+### Important Notes
+
+- Exclude `NA` and `AMBIGUOUS` assignments from the named species abundance counts.
+- Apply the same species inclusion criteria consistently across all samples.
+- Do not treat unclassified reads as a named species.
+- If a sample has zero classified species counts, do not divide by zero during normalization.
+- TSS normalization accounts for differences in total classified read counts, but does not correct for all sequencing or compositional biases.
+
+---
+
+## 10. Expected Output Files
+
+| File | Description |
 |---|---|
-| Modified Perl script | Script configured to use the local SPINGO installation and reference database |
-| SPINGO classification results | Sample-specific taxonomic classification output |
-| Species abundance table | Table containing species-level abundance counts across samples |
-| TSS-normalized abundance table | Species abundances expressed as relative abundances |
-| Top 20 species table | Species sorted by descending mean relative abundance |
-| Bar graph | Visualization of the top 20 species and their mean relative abundances |
+| `species_counts.tsv` | Combined raw species count matrix for all samples |
+| `species_relative_abundance_TSS.tsv` | Species abundance matrix after TSS normalization |
+| `top20_species_mean_abundance.tsv` | Top 20 species sorted by mean relative abundance |
+| `top20_species_mean_abundance.png` | Sorted bar graph of the top 20 species |
 
 ---
 
-## 10. Conclusion
+## 11. Conclusion
 
-The SPINGO pipeline was configured using the local executable and the RDP 11.2 species reference database. The provided Perl script was modified to replace the original server-specific paths, and its syntax was validated using Perl's built-in syntax-checking option.
+The SPINGO pipeline was used to classify sequencing reads at the genus and species levels. Species-level read counts were combined into an abundance matrix and normalized using total-sum scaling to calculate relative abundances across samples.
 
-The classification results are subsequently used to calculate species-level relative abundances through total-sum scaling normalization. The top 20 species are selected according to their mean relative abundance across samples and visualized using sorted bar graphs.
-
+The mean relative abundance of each species was calculated, and the top 20 species were selected and visualized using a sorted bar graph. This analysis provides a summary of the most abundant classified species in the microbiome samples.
