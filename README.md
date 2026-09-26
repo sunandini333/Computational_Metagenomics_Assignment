@@ -1101,3 +1101,584 @@ After running the analysis, include the following in your report:
 The SPINGO pipeline was used to classify sequencing reads at the genus and species levels. Species-level read counts were combined into an abundance matrix and normalized using total-sum scaling to calculate relative abundances across samples.
 
 The mean relative abundance of each species was calculated, and the top 20 species were selected and visualized using a sorted bar graph. This analysis provides a summary of the most abundant classified species in the microbiome samples.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Question 4: Comparison of Taxonomic Profiles at Genus and Species Levels (5 Marks)
+
+## 1. Objective
+
+Compare the taxonomic profiles obtained at the genus and species levels across the 12 sequencing samples. Identify the major differences in microbial composition, determine which taxa are consistently abundant or uniquely detected in particular samples, and support the observations using appropriate plots and tables.
+
+The analysis includes:
+
+1. Comparing relative abundances at the genus and species levels.
+2. Visualizing microbial composition using stacked bar plots and heatmaps.
+3. Identifying dominant, consistently detected, and sample-specific taxa.
+4. Comparing the similarities and differences among the 12 samples using Bray–Curtis dissimilarity.
+
+---
+
+## 2. Load the Required Libraries and Data
+
+The TSS-normalized genus and species abundance matrices generated in Question 3 are used for this comparison.
+
+The matrices should have samples in rows and taxa in columns, with each entry representing the relative abundance of a taxon in a sample.
+
+```r
+# Install packages if required
+# install.packages(c("ggplot2", "dplyr", "tidyr",
+#                    "tibble", "vegan", "pheatmap"))
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(vegan)
+library(pheatmap)
+
+# Check the dimensions of the normalized matrices
+dim(genus_tss)
+dim(species_tss)
+
+# Check the sample names
+rownames(genus_tss)
+rownames(species_tss)
+
+# Check that both matrices contain the same 12 samples
+stopifnot(
+    setequal(rownames(genus_tss), rownames(species_tss))
+)
+
+# Reorder species samples to match genus samples
+species_tss <- species_tss[
+    rownames(genus_tss),
+    ,
+    drop = FALSE
+]
+```
+
+---
+
+## 3. Compare the Genus-Level and Species-Level Composition
+
+### 3.1 Genus-Level Composition
+
+To compare the microbial composition across the 12 samples, the 10 most abundant genera across all samples were selected based on their mean relative abundance.
+
+All remaining genera were grouped into a category called "Other" to make the plot easier to interpret.
+
+```r
+# Identify the 10 most abundant genera
+top10_genera <- names(
+    sort(
+        colMeans(genus_tss, na.rm = TRUE),
+        decreasing = TRUE
+    )
+)[1:min(10, ncol(genus_tss))]
+
+# Convert the abundance matrix into long format
+genus_long <- as.data.frame(genus_tss) %>%
+    rownames_to_column("Sample") %>%
+    pivot_longer(
+        cols = -Sample,
+        names_to = "Genus",
+        values_to = "Relative_Abundance"
+    ) %>%
+    mutate(
+        Genus = ifelse(
+            Genus %in% top10_genera,
+            Genus,
+            "Other"
+        )
+    ) %>%
+    group_by(Sample, Genus) %>%
+    summarise(
+        Relative_Abundance = sum(
+            Relative_Abundance,
+            na.rm = TRUE
+        ),
+        .groups = "drop"
+    )
+
+# Generate the stacked bar plot
+p_genus <- ggplot(
+    genus_long,
+    aes(
+        x = Sample,
+        y = Relative_Abundance,
+        fill = Genus
+    )
+) +
+    geom_col(width = 0.8) +
+    labs(
+        title = "Genus-Level Microbial Composition Across 12 Samples",
+        x = "Samples",
+        y = "Relative Abundance (TSS)",
+        fill = "Genus"
+    ) +
+    scale_y_continuous(
+        labels = scales::percent_format()
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+        plot.title = element_text(
+            face = "bold",
+            hjust = 0.5
+        ),
+        axis.text.x = element_text(
+            angle = 45,
+            hjust = 1
+        ),
+        panel.grid.major.x = element_blank()
+    )
+
+print(p_genus)
+
+# Save the plot
+ggsave(
+    "genus_composition_12_samples.png",
+    plot = p_genus,
+    width = 12,
+    height = 7,
+    dpi = 300
+)
+```
+
+### 3.2 Species-Level Composition
+
+The same procedure was applied to the species-level abundance matrix. The 10 most abundant species were selected based on their mean relative abundance across the 12 samples.
+
+```r
+# Identify the 10 most abundant species
+top10_species <- names(
+    sort(
+        colMeans(species_tss, na.rm = TRUE),
+        decreasing = TRUE
+    )
+)[1:min(10, ncol(species_tss))]
+
+# Convert the species matrix into long format
+species_long <- as.data.frame(species_tss) %>%
+    rownames_to_column("Sample") %>%
+    pivot_longer(
+        cols = -Sample,
+        names_to = "Species",
+        values_to = "Relative_Abundance"
+    ) %>%
+    mutate(
+        Species = ifelse(
+            Species %in% top10_species,
+            Species,
+            "Other"
+        )
+    ) %>%
+    group_by(Sample, Species) %>%
+    summarise(
+        Relative_Abundance = sum(
+            Relative_Abundance,
+            na.rm = TRUE
+        ),
+        .groups = "drop"
+    )
+
+# Generate the stacked bar plot
+p_species <- ggplot(
+    species_long,
+    aes(
+        x = Sample,
+        y = Relative_Abundance,
+        fill = Species
+    )
+) +
+    geom_col(width = 0.8) +
+    labs(
+        title = "Species-Level Microbial Composition Across 12 Samples",
+        x = "Samples",
+        y = "Relative Abundance (TSS)",
+        fill = "Species"
+    ) +
+    scale_y_continuous(
+        labels = scales::percent_format()
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+        plot.title = element_text(
+            face = "bold",
+            hjust = 0.5
+        ),
+        axis.text.x = element_text(
+            angle = 45,
+            hjust = 1
+        ),
+        panel.grid.major.x = element_blank()
+    )
+
+print(p_species)
+
+# Save the plot
+ggsave(
+    "species_composition_12_samples.png",
+    plot = p_species,
+    width = 14,
+    height = 8,
+    dpi = 300
+)
+```
+
+The stacked bar plots provide a comparison of the relative contributions of the most abundant taxa within each sample. The "Other" category represents the combined abundance of taxa outside the selected top 10, rather than a single taxon.
+
+---
+
+## 4. Identify Consistently Abundant and Uniquely Detected Taxa
+
+To identify the taxa shared across samples and those detected in only one sample, the prevalence and mean relative abundance of each taxon were calculated.
+
+Prevalence is defined as the number of samples in which a taxon has a relative abundance greater than zero.
+
+### 4.1 Calculate Taxon Prevalence
+
+```r
+# Function to calculate prevalence and abundance statistics
+taxon_summary <- function(mat, rank_name) {
+
+    data.frame(
+        Taxon = colnames(mat),
+
+        Prevalence = colSums(
+            mat > 0,
+            na.rm = TRUE
+        ),
+
+        Mean_Abundance = colMeans(
+            mat,
+            na.rm = TRUE
+        ),
+
+        Max_Abundance = apply(
+            mat,
+            2,
+            max,
+            na.rm = TRUE
+        ),
+
+        Max_Abundance_Sample = apply(
+            mat,
+            2,
+            function(x) {
+                rownames(mat)[which.max(x)]
+            }
+        )
+    ) %>%
+        mutate(
+            Rank = rank_name,
+
+            Detection = case_when(
+                Prevalence == nrow(mat) ~
+                    "Detected in all samples",
+
+                Prevalence == 1 ~
+                    "Detected in one sample",
+
+                TRUE ~
+                    "Detected in multiple samples"
+            )
+        ) %>%
+        arrange(desc(Mean_Abundance))
+}
+
+# Generate genus and species summary tables
+genus_summary <- taxon_summary(
+    genus_tss,
+    "Genus"
+)
+
+species_summary <- taxon_summary(
+    species_tss,
+    "Species"
+)
+
+# Save the summary tables
+write.csv(
+    genus_summary,
+    "genus_prevalence_summary.csv",
+    row.names = FALSE
+)
+
+write.csv(
+    species_summary,
+    "species_prevalence_summary.csv",
+    row.names = FALSE
+)
+
+# Display the most abundant taxa
+head(genus_summary, 15)
+head(species_summary, 20)
+```
+
+### 4.2 Identify Taxa Detected in All Samples
+
+Taxa with a prevalence of 12 were detected in every sample in this dataset.
+
+```r
+# Genera detected in all 12 samples
+genus_shared <- genus_summary %>%
+    filter(Prevalence == nrow(genus_tss))
+
+# Species detected in all 12 samples
+species_shared <- species_summary %>%
+    filter(Prevalence == nrow(species_tss))
+
+print(genus_shared)
+print(species_shared)
+```
+
+### 4.3 Identify Taxa Detected in Only One Sample
+
+Taxa with a prevalence of 1 were detected in only one of the 12 samples.
+
+```r
+# Genera detected in only one sample
+genus_unique <- genus_summary %>%
+    filter(Prevalence == 1)
+
+# Species detected in only one sample
+species_unique <- species_summary %>%
+    filter(Prevalence == 1)
+
+print(genus_unique)
+print(species_unique)
+
+# Save the sample-specific taxa tables
+write.csv(
+    genus_unique,
+    "genus_unique_taxa.csv",
+    row.names = FALSE
+)
+
+write.csv(
+    species_unique,
+    "species_unique_taxa.csv",
+    row.names = FALSE
+)
+```
+
+The `Max_Abundance_Sample` column in the summary tables identifies the sample with the highest relative abundance for each taxon. For uniquely detected taxa, this is the only sample in which the taxon was observed.
+
+A taxon detected in only one sample should be described as sample-specific within this dataset. It should not automatically be interpreted as biologically absent from the other samples, because detection can depend on sequencing depth and classification sensitivity.
+
+---
+
+## 5. Identify the Dominant Taxa in Each Sample
+
+To compare the dominant microbial taxa across all samples, the five most abundant genera and five most abundant species were extracted for each sample.
+
+### 5.1 Extract the Top Five Taxa Per Sample
+
+```r
+# Function to obtain the top taxa in each sample
+get_top_taxa <- function(mat, rank_name, n = 5) {
+
+    result <- lapply(
+        rownames(mat),
+        function(sample_name) {
+
+            abundances <- mat[
+                sample_name,
+                ,
+                drop = TRUE
+            ]
+
+            top_indices <- order(
+                abundances,
+                decreasing = TRUE
+            )[seq_len(min(n, length(abundances)))]
+
+            data.frame(
+                Sample = sample_name,
+                Rank = rank_name,
+                Taxon = names(abundances)[top_indices],
+                Relative_Abundance = as.numeric(
+                    abundances[top_indices]
+                )
+            )
+        }
+    )
+
+    bind_rows(result)
+}
+
+# Extract the top five genera and species
+top5_genera_by_sample <- get_top_taxa(
+    genus_tss,
+    "Genus",
+    n = 5
+)
+
+top5_species_by_sample <- get_top_taxa(
+    species_tss,
+    "Species",
+    n = 5
+)
+
+# Save the tables
+write.csv(
+    top5_genera_by_sample,
+    "top5_genera_by_sample.csv",
+    row.names = FALSE
+)
+
+write.csv(
+    top5_species_by_sample,
+    "top5_species_by_sample.csv",
+    row.names = FALSE
+)
+
+# Display the results
+print(top5_genera_by_sample)
+print(top5_species_by_sample)
+```
+
+These tables can be used to identify which genera and species dominate individual samples and whether the same taxa are prominent across several samples.
+
+---
+
+## 6. Compare Similarities Between Samples Using Bray–Curtis Dissimilarity
+
+Bray–Curtis dissimilarity was calculated to compare the overall microbial composition of the 12 samples.
+
+The Bray–Curtis measure compares the relative abundances of taxa between pairs of samples. Values closer to zero indicate more similar abundance profiles, whereas values closer to one indicate greater dissimilarity.
+
+### 6.1 Calculate Bray–Curtis Dissimilarity
+
+```r
+# Calculate genus-level Bray-Curtis dissimilarity
+genus_bray <- vegdist(
+    genus_tss,
+    method = "bray"
+)
+
+# Calculate species-level Bray-Curtis dissimilarity
+species_bray <- vegdist(
+    species_tss,
+    method = "bray"
+)
+
+# Convert distances to matrices
+genus_bray_mat <- as.matrix(genus_bray)
+species_bray_mat <- as.matrix(species_bray)
+```
+
+### 6.2 Generate the Genus-Level Dissimilarity Heatmap
+
+```r
+pheatmap(
+    genus_bray_mat,
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
+    main = "Bray-Curtis Dissimilarity: Genus Level",
+    display_numbers = TRUE,
+    filename = "genus_bray_curtis.png",
+    width = 10,
+    height = 9
+)
+```
+
+### 6.3 Generate the Species-Level Dissimilarity Heatmap
+
+```r
+pheatmap(
+    species_bray_mat,
+    cluster_rows = TRUE,
+    cluster_cols = TRUE,
+    main = "Bray-Curtis Dissimilarity: Species Level",
+    display_numbers = TRUE,
+    filename = "species_bray_curtis.png",
+    width = 10,
+    height = 9
+)
+```
+
+The clustering dendrograms show which samples have more similar overall abundance profiles at each taxonomic level. The distance heatmaps also help identify sample pairs with particularly different profiles.
+
+These patterns describe compositional similarity and do not establish the biological cause of the differences.
+
+---
+
+## 7. Interpretation and Comparison of Results
+
+### 7.1 Genus-Level Comparison
+
+The genus-level heatmap and stacked bar plot were used to compare the microbial composition across the 12 samples.
+
+From the existing genus-level results, Bacteroides was the genus with the highest mean relative abundance in the displayed top-15 heatmap. Its relative abundance varied among samples. Blautia was also relatively abundant in some samples, while Prevotella and Alistipes showed more localized abundance patterns.
+
+These observations should be checked against the updated prevalence and top-five tables before making statements about the exact samples in which each genus was detected or most abundant.
+
+### 7.2 Species-Level Comparison
+
+The species-level results provided a more detailed view of the microbial composition.
+
+In the existing top-20 species results, Bacteroides_vulgatus had the highest mean relative abundance. Prevotella_copri, Faecalibacterium_prausnitzii and Bacteroides_dorei were also among the more abundant species.
+
+The species heatmap showed variation in the relative abundance of Bacteroides_vulgatus among the samples, with particularly high abundance patterns noted for SRR14919241, SRR14919236 and SRR14919243.
+
+The top-five-per-sample tables can be used to confirm the leading species within each sample and identify whether these taxa are consistently abundant or concentrated in particular samples.
+
+### 7.3 Differences Between Samples
+
+The 12 samples showed differences in their relative abundance profiles at both the genus and species levels.
+
+The stacked bar plots illustrate differences in the relative contribution of the most abundant taxa, while the heatmaps show the distribution of individual taxa across samples.
+
+The Bray–Curtis dissimilarity heatmaps can be used to identify pairs or groups of samples with similar or dissimilar profiles. Samples with similar profiles may share several dominant taxa, whereas samples with greater dissimilarity may have differences in the relative abundance of dominant taxa or the presence of less prevalent taxa.
+
+Use the actual clustering and prevalence results to report the particular sample pairs, shared taxa and sample-specific taxa observed in your analysis.
+
+---
+
+## 8. Figures and Tables
+
+The following figures and tables are included to support the comparison:
+
+| Output | Description |
+|---|---|
+| `genus_composition_12_samples.png` | Stacked bar plot comparing the relative abundance of the 10 most abundant genera and other genera across the 12 samples |
+| `species_composition_12_samples.png` | Stacked bar plot comparing the relative abundance of the 10 most abundant species and other species across the 12 samples |
+| `genus_prevalence_summary.csv` | Genus-level prevalence, mean abundance and maximum abundance summary |
+| `species_prevalence_summary.csv` | Species-level prevalence, mean abundance and maximum abundance summary |
+| `genus_unique_taxa.csv` | Genera detected in only one sample |
+| `species_unique_taxa.csv` | Species detected in only one sample |
+| `top5_genera_by_sample.csv` | Five most abundant genera in each sample |
+| `top5_species_by_sample.csv` | Five most abundant species in each sample |
+| `genus_bray_curtis.png` | Genus-level Bray–Curtis dissimilarity heatmap |
+| `species_bray_curtis.png` | Species-level Bray–Curtis dissimilarity heatmap |
+
+The genus- and species-level heatmaps from Question 3 can also be included to show the distribution of individual taxa across samples.
+
+---
+
+## 9. Conclusion
+
+The comparison of taxonomic profiles at the genus and species levels revealed differences in microbial composition among the 12 samples.
+
+At the genus level, Bacteroides was prominent in the existing abundance results, while other genera, including Blautia, Prevotella and Alistipes, showed variation in their abundance patterns.
+
+At the species level, Bacteroides_vulgatus was the most abundant species by mean relative abundance in the existing top-20 results. The species-level profiles provided a more specific view of microbial variation across samples.
+
+The prevalence tables, sample-specific taxa summaries, stacked bar plots and Bray–Curtis dissimilarity heatmaps provide complementary evidence for identifying taxa shared across samples, taxa with localized abundance patterns and similarities or differences between the overall microbial profiles.
+
