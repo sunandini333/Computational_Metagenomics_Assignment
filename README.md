@@ -371,6 +371,10 @@ grep -hE \
 results/*_trimmomatic.log
 ```
 
+
+<img width="662" height="356" alt="image" src="https://github.com/user-attachments/assets/ab550aa5-9351-4792-a44b-6ecc0d9bbe57" />
+
+
 ### Step 3.2: Understand the Trimming Statistics
 
 | Statistic | Description |
