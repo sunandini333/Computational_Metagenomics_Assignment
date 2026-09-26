@@ -347,6 +347,8 @@ If all 12 samples are processed successfully, the expected file counts are:
 | Trimming log files | 12 |
 
 **Note:** If fewer files are generated, check the relevant Trimmomatic log for errors before proceeding to downstream analysis.
+![Uploading image.png…]()
+
 
 ---
 
