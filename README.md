@@ -1,7 +1,9 @@
 ## Microbiome_Metagenomics_full_pipeline
 <img width="2048" height="768" alt="image" src="https://github.com/user-attachments/assets/df855c4b-286a-4666-994b-e9856c11b5c1" />
 
-# question number 1
+# question number 1 1. In this section you will perform an in initial quality check for the sequences using FastQC
+# pipeline (this step can be done using windows system as well). Show the plots having the
+# quality scores and add small snapshots for each sample. (5 marks)
 installing the mini conda in our ssh clint 
 Download the Miniconda installer:
 
