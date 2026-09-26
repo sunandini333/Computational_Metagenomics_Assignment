@@ -216,31 +216,39 @@ Assignment1/
 
 ---
 
+
 # Question 2: Quality Trimming Using Trimmomatic (5 Marks)
 
-**Objective:** Perform quality trimming of the paired-end sequencing reads using Trimmomatic with the specified parameters:
+## 1. Run Trimmomatic on All 12 Samples
+
+**Objective:** Perform quality trimming of the paired-end sequencing reads using Trimmomatic 0.41 with the following parameters:
 
 - `SLIDINGWINDOW:5:27`
 - `MINLEN:100`
 - `AVGQUAL:27`
 
-The trimming process removes low-quality bases and short reads to obtain high-quality reads for downstream taxonomic classification.
+Trimmomatic removes low-quality bases and filters out reads that do not meet the specified quality thresholds. The paired-end reads are processed for all 12 samples, and the trimming logs are saved for further analysis.
 
-## 1. Running Trimmomatic on Paired-End Samples
+### Step 1.1: Navigate to the Assignment Directory
 
-Trimmomatic is used to trim low-quality bases from the raw sequencing reads. The following loop processes all 12 paired-end samples in the `raw/` directory and saves the paired and unpaired reads separately.
+Navigate to the `Assignment1` directory and activate the Conda environment containing Trimmomatic.
 
-### Step 1.1: Create output directories
+```bash
+cd ~/comeg_asg1/Assignment1
+conda activate assignment1
+```
 
-Create directories to store the trimmed reads and Trimmomatic log files.
+### Step 1.2: Create Output Directories
+
+Create separate directories for the trimmed reads and the Trimmomatic log files.
 
 ```bash
 mkdir -p trimmed results
 ```
 
-### Step 1.2: Run Trimmomatic on all 12 samples
+### Step 1.3: Run Trimmomatic on All Samples
 
-The following shell script automatically identifies the forward and reverse reads for each sample, performs quality trimming, and captures the trimming statistics in individual log files.
+The following shell script automatically identifies the forward and reverse FASTQ files for each sample, performs paired-end quality trimming, and saves the output files and logs.
 
 ```bash
 set -o pipefail
@@ -249,7 +257,14 @@ for f1 in raw/*_1.fastq.gz; do
     sample=$(basename "$f1" _1.fastq.gz)
     f2="raw/${sample}_2.fastq.gz"
 
-    echo "Processing $sample"
+    if [ ! -f "$f2" ]; then
+        echo "ERROR: Missing reverse read for $sample"
+        continue
+    fi
+
+    echo "===================================="
+    echo "Trimming sample: $sample"
+    echo "===================================="
 
     trimmomatic PE \
         -threads 4 \
@@ -264,105 +279,104 @@ for f1 in raw/*_1.fastq.gz; do
         AVGQUAL:27 \
         2>&1 | tee "results/${sample}_trimmomatic.log"
 
-    if [ $? -ne 0 ]; then
-        echo "Trimming failed for $sample"
-        exit 1
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        echo "ERROR: Trimmomatic failed for $sample"
     fi
 done
 ```
 
-### Command explanation
+### Trimming Parameters
 
-| Command / Option | Description |
+| Parameter | Description |
 |---|---|
-| `trimmomatic PE` | Runs Trimmomatic in paired-end mode |
-| `-threads 4` | Uses 4 CPU threads |
+| `PE` | Runs Trimmomatic in paired-end mode |
+| `-threads 4` | Uses 4 threads for processing |
 | `-phred33` | Specifies Phred+33 quality encoding |
 | `SLIDINGWINDOW:5:27` | Scans a sliding window of 5 bases and trims when the average quality falls below 27 |
 | `MINLEN:100` | Discards reads shorter than 100 bases |
-| `AVGQUAL:27` | Discards reads whose average quality score is below 27 |
-| `tee` | Displays the log in the terminal and saves it to a file |
-| `set -o pipefail` | Ensures pipeline failures are detected |
+| `AVGQUAL:27` | Discards reads with an average quality score below 27 |
+| `tee` | Displays the trimming output and saves it to a log file |
+| `set -o pipefail` | Allows pipeline failures to be detected |
 
-### Output files
+### Output Files
 
 For each sample, Trimmomatic generates four output files:
 
-1. **Forward paired reads:** High-quality forward reads whose reverse mates also survive filtering.
-2. **Forward unpaired reads:** Forward reads that survive filtering but whose reverse mates do not.
-3. **Reverse paired reads:** High-quality reverse reads whose forward mates also survive filtering.
-4. **Reverse unpaired reads:** Reverse reads that survive filtering but whose forward mates do not.
+1. **Forward paired:** Forward reads whose corresponding reverse reads also survive filtering.
+2. **Forward unpaired:** Forward reads that survive filtering but whose reverse mates do not.
+3. **Reverse paired:** Reverse reads whose corresponding forward reads also survive filtering.
+4. **Reverse unpaired:** Reverse reads that survive filtering but whose forward mates do not.
+
+Each sample also generates a separate log file containing the trimming statistics.
 
 ---
 
-## 2. Verifying the Trimmed Read Files
+## 2. Verify That Trimming Succeeded
 
-After trimming all 12 paired-end samples, verify that the expected paired-end output files have been generated.
+After the trimming process is complete, verify that all 12 samples have generated their expected paired-end output files and log files.
 
-### Step 2.1: Count paired reads files
-
-```bash
-ls trimmed/*_paired.fastq.gz | wc -l
-```
-
-**Expected output:**
-
-```text
-24
-```
-
-This corresponds to 12 forward paired files and 12 reverse paired files.
-
-![Uploading image.png…]()
-
-
-### Step 2.2: Count all trimmed output files
+### Step 2.1: Count the Paired Forward Reads
 
 ```bash
-ls trimmed/*.fastq.gz | wc -l
+echo "Paired forward reads:"
+ls trimmed/*_1_paired.fastq.gz | wc -l
 ```
 
-**Expected output:**
+### Step 2.2: Count the Paired Reverse Reads
 
-```text
-48
+```bash
+echo "Paired reverse reads:"
+ls trimmed/*_2_paired.fastq.gz | wc -l
 ```
 
-This includes the paired and unpaired outputs for all 12 samples, assuming all four output files are generated for every sample.
+### Step 2.3: Count the Trimming Logs
+
+```bash
+echo "Trimming logs:"
+ls results/*_trimmomatic.log | wc -l
+```
+
+### Expected Output
+
+If all 12 samples are processed successfully, the expected file counts are:
+
+| Output | Expected Number |
+|---|---:|
+| Forward paired files | 12 |
+| Reverse paired files | 12 |
+| Trimming log files | 12 |
+
+**Note:** If fewer files are generated, check the relevant Trimmomatic log for errors before proceeding to downstream analysis.
 
 ---
 
-## 3. Recording Trimming Statistics
+## 3. Summarize the Trimming Results
 
-Trimmomatic produces a summary of the number of input read pairs, surviving paired reads, surviving individual reads, and dropped reads.
+Trimmomatic generates a summary for each sample, including the number of input read pairs, surviving paired reads, surviving individual reads, and dropped reads.
 
-The `results/` directory contains a separate log file for each sample.
+### Step 3.1: Extract Trimming Statistics
 
-### Step 3.1: Extract trimming statistics
-
-Use the following command to extract the key trimming statistics from all 12 log files.
+Run the following command to extract the key statistics from all 12 log files:
 
 ```bash
-grep -E \
+grep -hE \
 'Input Read Pairs|Both Surviving|Forward Only Surviving|Reverse Only Surviving|Dropped' \
 results/*_trimmomatic.log
 ```
 
-### Step 3.2: Interpret the trimming statistics
-
-The following statistics should be recorded for each sample:
+### Step 3.2: Understand the Trimming Statistics
 
 | Statistic | Description |
 |---|---|
-| Input Read Pairs | Total number of read pairs processed |
-| Both Surviving | Number of pairs in which both forward and reverse reads survived |
+| Input Read Pairs | Total number of forward and reverse read pairs processed |
+| Both Surviving | Number of pairs in which both reads survived quality filtering |
 | Forward Only Surviving | Number of pairs in which only the forward read survived |
 | Reverse Only Surviving | Number of pairs in which only the reverse read survived |
-| Dropped | Number of pairs in which neither read survived |
+| Dropped | Number of pairs in which neither read survived filtering |
 
-### Step 3.3: Summary table
+### Step 3.3: Record the Results
 
-Use the extracted values from the Trimmomatic logs to complete the following table in your report.
+Use the actual values extracted from the Trimmomatic logs to complete the following table for the report.
 
 | Sample | Input Read Pairs | Both Surviving | Forward Only | Reverse Only | Dropped |
 |---|---:|---:|---:|---:|---:|
@@ -379,46 +393,49 @@ Use the extracted values from the Trimmomatic logs to complete the following tab
 | SR14919245 | — | — | — | — | — |
 | SR14919246 | — | — | — | — | — |
 
-**Note:** Replace the dashes with the actual values from your Trimmomatic log files.
+*Replace the dashes with the actual statistics from the corresponding log files. Adjust the sample IDs if your filenames differ.*
 
 ---
 
-## 4. Inferring the Trimming Results
+## 4. Infer the Trimming Results
 
 The trimming statistics can be used to evaluate the effect of quality filtering on the sequencing reads.
 
-Discuss the following points based on your actual results:
+### 4.1 Calculate the Paired Read Retention
 
-- **Read retention:** Calculate the percentage of read pairs in which both reads survived quality trimming.
-- **Read loss:** Identify samples with relatively high numbers of dropped read pairs.
-- **Single surviving reads:** Compare the number of forward-only and reverse-only surviving reads across samples.
-- **Effect of quality filtering:** Explain how the selected quality thresholds and minimum read length affect the number of reads available for downstream analysis.
-
-### Read retention calculation
-
-The percentage of read pairs in which both reads survived can be calculated as:
+The percentage of read pairs in which both reads survived trimming can be calculated using the following formula:
 
 \[
-\text{Retention (\%)} =
-\frac{\text{Both Surviving}}{\text{Input Read Pairs}}
-\times 100
+\text{Paired Retention (\%)} =
+\frac{\text{Both Surviving Pairs}}
+{\text{Input Read Pairs}} \times 100
 \]
 
-The percentage of dropped read pairs can be calculated as:
+### 4.2 Calculate the Percentage of Dropped Read Pairs
 
 \[
 \text{Dropped (\%)} =
-\frac{\text{Dropped}}{\text{Input Read Pairs}}
-\times 100
+\frac{\text{Dropped Read Pairs}}
+{\text{Input Read Pairs}} \times 100
 \]
 
-Use these calculations to compare the samples and discuss the observed trimming outcomes.
+### 4.3 Discussion and Interpretation
+
+Compare the trimming statistics across all 12 samples and discuss the following:
+
+1. **Read retention:** Identify the number and percentage of read pairs in which both reads survived filtering.
+2. **Read loss:** Compare the number of dropped read pairs across samples and identify any substantial differences.
+3. **Single surviving reads:** Examine the number of forward-only and reverse-only surviving reads.
+4. **Effect of filtering parameters:** Discuss how the sliding-window quality threshold, minimum read length, and average quality threshold affect read retention.
+5. **Downstream analysis:** Explain how the resulting high-quality paired reads will be used for taxonomic classification with SPINGO.
+
+Use the actual trimming statistics to support your interpretation. Do not assume that every sample has the same read retention rate.
 
 ---
 
 ## 5. Final Output Directory Structure
 
-The following directory structure shows where the trimmed reads and trimming logs are stored.
+The trimmed reads and their corresponding logs are stored in the following directories:
 
 ```text
 Assignment1/
@@ -448,13 +465,13 @@ Assignment1/
 │
 ├── fastqc_trimmed/
 ├── spingo/
-└── results/
+└── ...
 ```
 
 ---
 
 ## 6. Conclusion
 
-Trimmomatic was used to perform quality trimming of the 12 paired-end sequencing samples using the specified quality thresholds and minimum read length. The resulting paired and unpaired reads were saved in the `trimmed/` directory, while individual trimming logs were stored in the `results/` directory.
+Trimmomatic 0.41 was used to perform quality trimming of 12 paired-end sequencing samples with the specified parameters: `SLIDINGWINDOW:5:27`, `MINLEN:100`, and `AVGQUAL:27`.
 
-The number of surviving and dropped reads should be compared across samples to assess the effect of the filtering parameters and determine the availability of high-quality reads for downstream analysis.
+The resulting paired and unpaired reads were saved in the `trimmed/` directory, while individual trimming logs were saved in `results/`. The trimming statistics provide information about read retention, single surviving reads, and read loss, which can be used to evaluate the quality-filtering results before downstream taxonomic classification.
