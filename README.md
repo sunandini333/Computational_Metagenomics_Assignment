@@ -642,3 +642,256 @@ Quality trimming was performed on all 12 paired-end samples using Trimmomatic 0.
 
 FastQC was subsequently used to assess the quality of the trimmed paired reads, and MultiQC was used to combine the reports. Comparing the raw and trimmed quality reports helps evaluate the effect of trimming on base quality, read length, and quality-control warnings before proceeding to downstream taxonomic classification.
 
+
+
+
+
+
+# Question 3: Taxonomic Classification Using SPINGO (5 Marks)
+
+## 1. Objective
+
+Classify the sequencing reads at both genus and species levels using the SPINGO pipeline. Calculate the relative abundances of the identified species using total-sum scaling (TSS) normalization. Identify the top 20 species based on their mean relative abundance and visualize their abundances using sorted bar graphs.
+
+The workflow consists of the following steps:
+
+1. Prepare the SPINGO pipeline and its reference database.
+2. Configure the SPINGO Perl script to use the local installation.
+3. Perform taxonomic classification of the sequencing reads.
+4. Calculate species-level relative abundances using TSS normalization.
+5. Identify the top 20 species based on mean abundance.
+6. Generate sorted bar graphs to visualize the results.
+
+---
+
+## 2. Set Up the SPINGO Environment
+
+### Step 2.1: Navigate to the Assignment Directory
+
+Navigate to the project directory and activate the Conda environment.
+
+```bash
+cd ~/comeg_asg1/Assignment1
+conda activate assignment1
+```
+
+### Step 2.2: Inspect the SPINGO Script
+
+The provided Perl script, `double_end_spingo.pl`, is used to run SPINGO on the paired-end sequencing samples.
+
+Inspect the beginning of the script:
+
+```bash
+head double_end_spingo.pl
+```
+
+Before making any modifications, create a backup of the original script.
+
+```bash
+cp double_end_spingo.pl double_end_spingo_original.pl
+```
+
+The original script is preserved as `double_end_spingo_original.pl`, allowing the initial version to be recovered if required.
+
+---
+
+## 3. Configure the SPINGO Script
+
+The original script contains paths from the professor's server. These paths must be replaced with the paths to the local SPINGO executable and reference database.
+
+### Step 3.1: Open the Perl Script
+
+Open the script using the Nano text editor:
+
+```bash
+nano double_end_spingo.pl
+```
+
+<img width="520" height="377" alt="image" src="https://github.com/user-attachments/assets/6ed46b8c-e2f0-4d08-a6e6-c8f9bbf076f6" />
+
+
+### Step 3.2: Define the SPINGO Executable and Database Paths
+
+Locate the `use strict;` statement near the beginning of the script.
+
+Immediately after that statement, add the following two variables:
+
+```perl
+my $SPINGO = "$ENV{HOME}/comeg_asg1/Assignment1/SPINGO-master/spingo";
+my $DB = "$ENV{HOME}/comeg_asg1/Assignment1/SPINGO-master/database/RDP_11.2.species.fa";
+```
+
+The beginning of the modified script should look like this:
+
+```perl
+use strict;
+
+my $SPINGO = "$ENV{HOME}/comeg_asg1/Assignment1/SPINGO-master/spingo";
+my $DB = "$ENV{HOME}/comeg_asg1/Assignment1/SPINGO-master/database/RDP_11.2.species.fa";
+
+open(LIST, "$ARGV[0]");
+while(<LIST>)
+{
+```
+
+These variables define the locations of the SPINGO executable and the RDP 11.2 species reference database.
+
+### Step 3.3: Replace the Original SPINGO Command
+
+Locate the existing SPINGO execution command in the script. It begins with the professor's original server path:
+
+```perl
+system("/home/sourav_g/spingo/SPINGO-master/spingo
+```
+
+Replace the entire original command line with:
+
+```perl
+system("$SPINGO -d $DB -p 4 -i $fa > $sample.spingo.out.txt");
+```
+
+**Command explanation:**
+
+| Option | Description |
+|---|---|
+| `$SPINGO` | Path to the local SPINGO executable |
+| `-d $DB` | Specifies the reference database |
+| `-p 4` | Uses 4 processing threads |
+| `-i $fa` | Specifies the input FASTA file |
+| `> $sample.spingo.out.txt` | Redirects the classification output to a sample-specific text file |
+
+This modification allows the script to run using the local SPINGO installation instead of the original server paths.
+
+### Step 3.4: Save the Modified Script
+
+After making the changes in Nano:
+
+1. Press `Ctrl + O` to save the file.
+2. Press `Enter` to confirm the filename.
+3. Press `Ctrl + X` to exit Nano.
+
+---
+
+## 4. Validate the Modified Perl Script
+
+Before running the classification pipeline, check the syntax of the modified Perl script.
+
+Execute:
+
+```bash
+perl -c double_end_spingo.pl
+```
+
+If the script is syntactically correct, the terminal should display:
+
+```text
+double_end_spingo.pl syntax OK
+```
+
+This confirms that Perl can parse the script without syntax errors. It does not, by itself, confirm that the SPINGO executable, reference database, input files, or classification commands will run successfully.
+
+---
+
+## 5. SPINGO Classification
+
+After validating the modified script, proceed with taxonomic classification using the paired-end sequencing reads.
+
+The classification is performed using the SPINGO executable and the RDP 11.2 species reference database. The script accepts the input file list through its first command-line argument, as indicated by:
+
+```perl
+open(LIST, "$ARGV[0]");
+```
+
+Each input entry is processed by the script, and its SPINGO output is written to a sample-specific text file.
+
+**Note:** The exact command to launch the complete classification run depends on the format and filename of the input list and on the remaining input-handling logic in `double_end_spingo.pl`. Use the input list and invocation specified in the supplied assignment script.
+
+---
+
+## 6. Relative Abundance Calculation and TSS Normalization
+
+After obtaining the taxonomic classification results, calculate the abundance of each species in each sample.
+
+Total-sum scaling (TSS) normalization converts the raw species counts into relative abundances by dividing each species count by the total number of classified reads in that sample.
+
+The relative abundance of species \(i\) in sample \(j\) is:
+
+\[
+RA_{ij} = \frac{C_{ij}}{\sum_{i=1}^{S} C_{ij}}
+\]
+
+Where:
+
+- \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
+- \(C_{ij}\) is the raw count of species \(i\) in sample \(j\).
+- \(S\) is the total number of species in the abundance table.
+
+For relative abundance expressed as a percentage:
+
+\[
+RA_{ij}(\%) =
+\frac{C_{ij}}{\sum_{i=1}^{S} C_{ij}} \times 100
+\]
+
+Each sample's relative abundance values should sum to 1, or 100% when expressed as percentages, provided the sample has a nonzero total classified count.
+
+---
+
+## 7. Identify the Top 20 Species
+
+Calculate the mean relative abundance of each species across the samples after TSS normalization.
+
+The mean relative abundance of species \(i\) is:
+
+\[
+\overline{RA_i} =
+\frac{1}{N}\sum_{j=1}^{N}RA_{ij}
+\]
+
+Where:
+
+- \(\overline{RA_i}\) is the mean relative abundance of species \(i\).
+- \(N\) is the number of samples.
+- \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
+
+Sort the species in descending order of their mean relative abundance and select the first 20 species.
+
+---
+
+## 8. Visualization of the Top 20 Species
+
+Generate bar graphs showing the relative abundances of the 20 most abundant species.
+
+The visualization should:
+
+- Display species names along the x-axis.
+- Display mean relative abundance on the y-axis.
+- Arrange the species in descending order of mean relative abundance.
+- Include a clear title and axis labels.
+- Use readable species labels, rotating them if necessary to avoid overlap.
+
+The resulting bar graph provides a visual summary of the species composition and the relative abundance of the top 20 species identified by SPINGO.
+
+---
+
+## 9. Expected Outputs
+
+The SPINGO analysis should produce the following outputs:
+
+| Output | Description |
+|---|---|
+| Modified Perl script | Script configured to use the local SPINGO installation and reference database |
+| SPINGO classification results | Sample-specific taxonomic classification output |
+| Species abundance table | Table containing species-level abundance counts across samples |
+| TSS-normalized abundance table | Species abundances expressed as relative abundances |
+| Top 20 species table | Species sorted by descending mean relative abundance |
+| Bar graph | Visualization of the top 20 species and their mean relative abundances |
+
+---
+
+## 10. Conclusion
+
+The SPINGO pipeline was configured using the local executable and the RDP 11.2 species reference database. The provided Perl script was modified to replace the original server-specific paths, and its syntax was validated using Perl's built-in syntax-checking option.
+
+The classification results are subsequently used to calculate species-level relative abundances through total-sum scaling normalization. The top 20 species are selected according to their mean relative abundance across samples and visualized using sorted bar graphs.
+
