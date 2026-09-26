@@ -54,7 +54,7 @@ fastqc -t 4 \
 Checking it should give 24 as output
 ```bash
 ls fastqc_raw/*_fastqc.html | wc -l
-
+```
 
 
 
