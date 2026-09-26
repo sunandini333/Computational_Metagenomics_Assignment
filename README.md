@@ -1,4 +1,4 @@
-# 🧬 Microbiome Metagenomics Full Pipeline
+# 16S rRNA sequencing data analysis workflow (Computational Metagenomics Assignment 1)
 
 A step-by-step workflow for processing microbiome metagenomic sequencing data, from raw FASTQ files to quality control, read trimming, and taxonomic analysis.
 
