@@ -313,6 +313,9 @@ ls trimmed/*_paired.fastq.gz | wc -l
 
 This corresponds to 12 forward paired files and 12 reverse paired files.
 
+![Uploading image.png…]()
+
+
 ### Step 2.2: Count all trimmed output files
 
 ```bash
