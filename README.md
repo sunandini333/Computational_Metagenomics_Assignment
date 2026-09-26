@@ -192,21 +192,25 @@ Example:
 **Output directory structure**
 
 ```text
-Microbiome_Metagenomics_full_pipeline/
+Assignment1/
 │
 ├── raw/
-│   ├── sample1_R1.fastq.gz
-│   ├── sample1_R2.fastq.gz
+│   ├── SR14919235_1.fastq.gz
+│   ├── SR14919235_2.fastq.gz
 │   └── ...
 │
 ├── fastqc_raw/
-│   ├── sample1_R1_fastqc.html
-│   ├── sample1_R1_fastqc.zip
-│   ├── sample1_R2_fastqc.html
-│   ├── sample1_R2_fastqc.zip
-│   └── ...
+│   ├── SR14919235_1_fastqc.html
+│   ├── SR14919235_1_fastqc.zip
+│   ├── SR14919235_2_fastqc.html
+│   ├── SR14919235_2_fastqc.zip
+│   ├── ...
+│   ├── multiqc_data/
+│   └── multiqc_report.html
 │
-└── multiqc_report/
-    └── multiqc_report.html
+├── trimmed/
+├── fastqc_trimmed/
+├── spingo/
+└── results/
 ```
 
