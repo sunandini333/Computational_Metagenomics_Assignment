@@ -434,19 +434,21 @@ The trimming statistics can be used to evaluate the effect of quality filtering 
 
 The percentage of read pairs in which both reads survived trimming can be calculated using the following formula:
 
-\[
-\text{Paired Retention (\%)} =
+$$
+\text{Paired Retention \%} =
 \frac{\text{Both Surviving Pairs}}
-{\text{Input Read Pairs}} \times 100
-\]
+{\text{Input Read Pairs}}
+\times 100
+$$
 
 ### 4.2 Calculate the Percentage of Dropped Read Pairs
 
-\[
-\text{Dropped (\%)} =
+$$
+\text{Dropped \%} =
 \frac{\text{Dropped Read Pairs}}
-{\text{Input Read Pairs}} \times 100
-\]
+{\text{Input Read Pairs}}
+\times 100
+$$
 
 ### 4.3 Discussion and Interpretation
 
