@@ -602,7 +602,7 @@ Suggested plots to include:
 - FastQC was then re-run on the 12 trimmed paired datasets to evaluate post-processing read quality improvements. 
 - Finally, MultiQC was executed, aggregating the Trimmomatic execution logs and FastQC zip outputs into a single consolidated report.
 
-## 7. Final Output Directory Structure
+## 8. Final Output Directory Structure
 
 The final directory structure for Question 2 includes the trimmed FASTQ files, individual Trimmomatic logs, and FastQC and MultiQC reports for both raw and trimmed reads.
 
@@ -644,7 +644,7 @@ Assignment1/
 
 ---
 
-## 8. Conclusion
+## 9. Conclusion
 
 Quality trimming was performed on all 12 paired-end samples using Trimmomatic 0.41 with the specified quality thresholds. The resulting paired and unpaired reads were saved in the `trimmed/` directory, and the trimming statistics were recorded in individual log files.
 
