@@ -595,6 +595,12 @@ Suggested plots to include:
 - Relevant FastQC warning summaries.
 
 ---
+## 7. Cross-checking Trimming and QC Results with Galaxy Server
+
+- To cross-check the results on Galaxy Australia, the 12 raw paired SRA datasets were imported and organized into a paired dataset collection. 
+- Trimmomatic was executed on this collection using the sequential operations SLIDINGWINDOW:5:27, AVGQUAL:27, and MINLEN:100, generating 12 trimmed paired datasets alongside forward and reverse singletons. 
+- FastQC was then re-run on the 12 trimmed paired datasets to evaluate post-processing read quality improvements. 
+- Finally, MultiQC was executed, aggregating the Trimmomatic execution logs and FastQC zip outputs into a single consolidated report.
 
 ## 7. Final Output Directory Structure
 
