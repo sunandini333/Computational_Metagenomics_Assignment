@@ -854,14 +854,12 @@ For each sample, divide the count of each species by the sum of all species coun
 
 The formula for relative abundance is:
 
-\[
-RA_{ij} = \frac{C_{ij}}{\sum_{i=1}^{S} C_{ij}}
-\]
+$$RA_{ij} = \frac{C_{ij}}{\sum_{k=1}^{S} C_{kj}}$$
 
 Where:
-- \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
-- \(C_{ij}\) is the raw count of species \(i\) in sample \(j\).
-- \(S\) is the total number of species.
+- $RA_{ij}$ is the relative abundance of species $i$ in sample $j$.
+- $C_{ij}$ is the raw count of species $i$ in sample $j$.
+- $\sum_{k=1}^{S} C_{kj}$ is the total count of all $S$ species in sample $j$ (the sample total).
 
 The following R code performs TSS normalization:
 
