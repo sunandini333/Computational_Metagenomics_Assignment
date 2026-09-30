@@ -932,15 +932,12 @@ After normalization, calculate the mean relative abundance of each species acros
 
 The mean relative abundance of species \(i\) is calculated as:
 
-\[
-\overline{RA_i} =
-\frac{1}{N}\sum_{j=1}^{N}RA_{ij}
-\]
+$$\overline{RA_i} = \frac{1}{N}\sum_{j=1}^{N} RA_{ij}$$
 
 Where:
-- \(\overline{RA_i}\) is the mean relative abundance of species \(i\).
-- \(N\) is the number of samples.
-- \(RA_{ij}\) is the relative abundance of species \(i\) in sample \(j\).
+- $\overline{RA_i}$ is the mean relative abundance of species $i$.
+- $N$ is the number of samples.
+- $RA_{ij}$ is the relative abundance of species $i$ in sample $j$.
 
 ### Step 7.1: Calculate Mean Relative Abundance
 
